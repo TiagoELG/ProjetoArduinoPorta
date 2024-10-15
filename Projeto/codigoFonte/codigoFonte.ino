@@ -1,15 +1,18 @@
 // Definição dos pinos
-const int trigPin = 9;
-const int echoPin = 8;
-const int buzzerPin = 10;
-const int ledAmareloPin = 12;
-const int ledVermelhoPin = 11;
-const int pirSensorPin = 7;  // Pino do sensor de presença
+const int trigPin = 9;           // Pino do trigger do sensor ultrassônico
+const int echoPin = 8;           // Pino do echo do sensor ultrassônico
+const int buzzerPin = 10;        // Pino do buzzer
+const int ledAmareloPin = 12;    // Pino do LED amarelo
+const int ledVermelhoPin = 11;   // Pino do LED vermelho
+const int pirSensorPin = 7;      // Pino do sensor PIR
+const int ldrPin = A0;           // Pino do LDR
 
 // Variáveis
-long duration;
-int distance;
-int movimentoDetectado;
+long duration;                   // Duração do pulso do sensor ultrassônico
+int distance;                    // Distância calculada pelo sensor ultrassônico
+int ldrValue = 0;                // Valor lido do LDR
+int limiarEscuro = 100;          // Limiar para considerar "escuro" (ajustável)
+int pirState = LOW;              // Estado do sensor PIR (LOW = sem movimento, HIGH = movimento)
 
 void setup() {
   // Configuração dos pinos
@@ -19,7 +22,7 @@ void setup() {
   pinMode(ledAmareloPin, OUTPUT);
   pinMode(ledVermelhoPin, OUTPUT);
   pinMode(pirSensorPin, INPUT);
-
+  
   // Inicializa a comunicação serial para depuração
   Serial.begin(9600);
 }
@@ -31,45 +34,54 @@ void loop() {
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
+
   duration = pulseIn(echoPin, HIGH);
-  distance = duration * 0.034 / 2;
+  distance = duration * 0.034 / 2;  // Calcula a distância em cm
 
-  // Leitura do sensor de presença
-  movimentoDetectado = digitalRead(pirSensorPin);
-
-  // Exibe a distância e o status do sensor de presença no Monitor Serial
+  // Exibe a distância no Monitor Serial
   Serial.print("Distancia: ");
   Serial.print(distance);
-  Serial.print(" cm | Sensor de Presenca: ");
-  if (movimentoDetectado == HIGH) {
-    Serial.println("Detectado");
+  Serial.println(" cm");
+
+  // Leitura do valor do LDR
+  ldrValue = analogRead(ldrPin);
+
+  // Exibe o valor do LDR no Monitor Serial
+  Serial.print("Valor LDR: ");
+  Serial.println(ldrValue);
+
+  // Leitura do estado do sensor PIR
+  pirState = digitalRead(pirSensorPin);
+
+  // Exibe o estado do PIR no Monitor Serial (ativo ou não)
+  Serial.print("Estado PIR: ");
+  if (pirState == HIGH) {
+    Serial.println("Movimento detectado");
   } else {
-    Serial.println("Nao Detectado");
+    Serial.println("Sem movimento");
   }
 
-  // Aciona o buzzer SOMENTE se o sensor de presença detectar movimento
-  if (movimentoDetectado == HIGH) {
-    digitalWrite(buzzerPin, HIGH);  // Buzzer liga quando presença é detectada
+  // Controle do buzzer baseado no LDR
+  // Se o valor do LDR for menor que o limiar, significa que está escuro
+  if (ldrValue < limiarEscuro) {
+    // Aciona o buzzer
+    digitalWrite(buzzerPin, HIGH);
   } else {
-    digitalWrite(buzzerPin, LOW);   // Buzzer desliga quando não há presença
+    // Desliga o buzzer
+    digitalWrite(buzzerPin, LOW);
   }
 
-  // Se movimento for detectado e a mão estiver a menos de 10 cm, aciona o LED vermelho
-  if (movimentoDetectado == HIGH && distance < 10) {
+  // Controle dos LEDs baseado no sensor ultrassônico
+  // Se a distância for menor que 10 cm, aciona o LED vermelho
+  if (distance < 10) {
     digitalWrite(ledVermelhoPin, HIGH);
     digitalWrite(ledAmareloPin, LOW);
   } 
-  // Se movimento for detectado mas a mão estiver a mais de 10 cm, aciona o LED amarelo
-  else if (movimentoDetectado == HIGH && distance >= 10) {
-    digitalWrite(ledAmareloPin, HIGH);
-    digitalWrite(ledVermelhoPin, LOW);
-  } 
-  // Se não houver movimento, mantém o LED amarelo aceso
+  // Se a distância for maior ou igual a 10 cm, aciona o LED amarelo
   else {
     digitalWrite(ledAmareloPin, HIGH);
     digitalWrite(ledVermelhoPin, LOW);
   }
 
-  delay(100);  // Pequeno atraso para estabilizar as leituras
+  delay(100);  // Pequeno atraso para evitar muitas leituras
 }
