@@ -9,6 +9,7 @@ const int pirSensorPin = 7;  // Pino do sensor de presença
 // Variáveis
 long duration;
 int distance;
+int movimentoDetectado;
 
 void setup() {
   // Configuração dos pinos
@@ -34,20 +35,25 @@ void loop() {
   duration = pulseIn(echoPin, HIGH);
   distance = duration * 0.034 / 2;
 
-  // Exibe a distância no Monitor Serial
+  // Leitura do sensor de presença
+  movimentoDetectado = digitalRead(pirSensorPin);
+
+  // Exibe a distância e o status do sensor de presença no Monitor Serial
   Serial.print("Distancia: ");
   Serial.print(distance);
-  Serial.println(" cm");
-
-  // Aciona o buzzer se a distância for menor que 20 cm
-  if (distance < 20) {
-    digitalWrite(buzzerPin, HIGH);
+  Serial.print(" cm | Sensor de Presenca: ");
+  if (movimentoDetectado == HIGH) {
+    Serial.println("Detectado");
   } else {
-    digitalWrite(buzzerPin, LOW);
+    Serial.println("Nao Detectado");
   }
 
-  // Leitura do sensor de presença
-  int movimentoDetectado = digitalRead(pirSensorPin);
+  // Aciona o buzzer SOMENTE se o sensor de presença detectar movimento
+  if (movimentoDetectado == HIGH) {
+    digitalWrite(buzzerPin, HIGH);  // Buzzer liga quando presença é detectada
+  } else {
+    digitalWrite(buzzerPin, LOW);   // Buzzer desliga quando não há presença
+  }
 
   // Se movimento for detectado e a mão estiver a menos de 10 cm, aciona o LED vermelho
   if (movimentoDetectado == HIGH && distance < 10) {
